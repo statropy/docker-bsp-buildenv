@@ -1,13 +1,13 @@
-FROM ubuntu:20.04
+FROM ubuntu:latest
 
 # Suppress time zone questions during build
-ENV TZ=Europe/Copenhagen
+ENV TZ=America/New_York
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
   && echo $TZ > /etc/timezone \
-  && apt-get update \
-  && apt-get upgrade -y \
-  && apt-get install -y \
+  && apt update \
+  && apt upgrade -y \
+  && apt install -y \
 # Packages sorted alphabetically
     asciidoc \
     astyle \
@@ -41,7 +41,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     libgtk2.0-0 \
     libjson-c-dev \
     libmpc-dev \
-    libncurses5 \
     libncurses5-dev \
     libncursesw5-dev \
     libpcap-dev \
@@ -70,60 +69,24 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     wget \
     xz-utils \
     zlib1g-dev \
-    zlibc \
 # Cleanup
-  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /var/lib/apt/lists/*
 # Generate en_US.UTF-8 locale
-  && locale-gen en_US.UTF-8 \
+RUN locale-gen en_US.UTF-8 \
 # Update locate to en_US.UTF-8
-  && update-locale LANG=en_US.UTF-8 LANGUAGE=en \
+  && update-locale LANG=en_US.UTF-8 LANGUAGE=en
 # git needs a user
-  && git config --system user.email "br@example.com" && git config --system user.name "Build Root" \
-# TBD Use bundler instead?
-  && gem install nokogiri -v 1.15.4 \
-  && gem install minitar -v 0.12.1 \
-  && gem install asciidoctor slop optimist \
-  && gem install json_schemer \
-# Enable use of python command
-  && update-alternatives --install /usr/bin/python python /usr/bin/python3 100 \
-# Install python-matplotlib
-  && python -m pip install matplotlib \
-# Support Microsemi version
-  && ln -s /usr/local/bin/mchp-install-pkg /usr/local/bin/mscc-install-pkg
+RUN git config --system user.email "br@statropy.com" && git config --system user.name "Build Root"
 
-# Install npm, node and the antora packages
-# Node version must be an LTS.
-ENV NVM_VERSION=0.39.5
-ENV NODE_VERSION=18.17.1
-ENV NVM_DIR=/nvm
-WORKDIR /nvm
-RUN mkdir -p /nvm/.npm /nvm/.cache
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | bash
-ENV PATH="/nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
-RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
-RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
-RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
-RUN node -e "fs.writeFileSync('package.json', '{}')"
-RUN npm i -g -D -E @antora/cli@3.1 @antora/site-generator@3.1 @antora/lunr-extension
-# Ignore requests to update npm
-COPY ./npmrc /nvm/.npmrc
+RUN gem install nokogiri asciidoctor
 
 # Set locale
 ENV LANG='en_US.UTF-8' LC_ALL='en_US.UTF-8'
 
-# buildroot-layer needs this for installing missing toolchains
-COPY ./mchp-install-pkg /usr/local/bin
+RUN mkdir -p /opt/mscc
+RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/bsp/mscc-brsdk-arm64-2024.06.tar.gz | tar -xz -C /opt/mscc/
+RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/mscc-toolchain-bin-2024.02-105.tar.gz | tar -xz -C /opt/mscc/
+RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/mscc-toolchain-bin-2024.02.6-108.tar.gz | tar -xz -C /opt/mscc/ 
 
-# Add simple grid client as this is needed to dispatch sub-jobs in the internal
-# mchp building environment
-COPY ./SimpleGridClient /usr/local/bin
-
-RUN git clone https://github.com/matthiasmiller/javascriptlint.git /tmp/jsl
-RUN cd /tmp/jsl; git checkout 5a245b453d68228878d6c283e12ef35327c45279; cd ./src; make -f Makefile.ref; cp ./Linux_All_DBG.OBJ/jsl /usr/local/bin/
-
-# Make working in the shell a bit nicer
-COPY ./alias.sh /nvm/.bashrc
-
-# A common entrypoint for setting up things before running the user command(s)
-COPY ./entrypoint.sh /entrypoint.sh
-ENTRYPOINT [ "/entrypoint.sh" ]
+WORKDIR /home/ubuntu
+USER ubuntu
