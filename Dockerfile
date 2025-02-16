@@ -86,7 +86,4 @@ ENV LANG='en_US.UTF-8' LC_ALL='en_US.UTF-8'
 RUN mkdir -p /opt/mscc
 RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/bsp/mscc-brsdk-arm64-2024.06.tar.gz | tar -xz -C /opt/mscc/
 RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/mscc-toolchain-bin-2024.02-105.tar.gz | tar -xz -C /opt/mscc/
-RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/mscc-toolchain-bin-2024.02.6-108.tar.gz | tar -xz -C /opt/mscc/ 
-
-WORKDIR /home/ubuntu
-USER ubuntu
+RUN wget -O- http://mscc-ent-open-source.s3-eu-west-1.amazonaws.com/public_root/toolchain/mscc-toolchain-bin-2024.02.6-108.tar.gz | tar -xz -C /opt/mscc/
